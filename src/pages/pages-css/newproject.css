@@ -1,0 +1,45 @@
+.container {
+    margin: 10px 200px;
+    width: 50vw;
+    /* padding: 20px; */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .container h1 {
+    /* margin-bottom: -4px; */
+    /* margin-top: ; */
+  }
+  
+  .container form {
+    width: 35vw;
+  }
+  
+  .container form button {
+    margin-top: -10px;
+    margin-bottom: 15px;
+  }
+  
+  .button-container {
+    display: flex;
+    justify-content: center;
+    
+  }
+
+  .input-container {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    margin-top: -15px;
+  }
+
+  .date-inputs {
+    display: flex;
+    gap: 15px;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
