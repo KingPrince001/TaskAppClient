@@ -1,205 +1,579 @@
-import { useEffect, useState } from "react";
+import  { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getProjectWithMembers } from "../redux/apiCall";
-import { CircularProgress, Card, CardContent, Typography, Grid, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton } from "@mui/material";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+  CircularProgress,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  IconButton,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditProjectDialog from "../components/EditProjectDialog";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { Autocomplete, TextField, Chip } from "@mui/material";
+import {
+  getProjectWithMembers,
+  updateProject,
+  deleteProject,
+} from "../redux/apiCall";
 
-function ExistingProjects() {
+const ExistingProjects = () => {
   const dispatch = useDispatch();
-  const projectWithMembers = useSelector((state) => state.projectWithMembers.projectWithMembers);
-  const user = useSelector((state) => state.user.user);
-  const userList = useSelector((state) => state.userList.userList);
-
-  const [selectedProject, setSelectedProject] = useState(null);
+  const projectWithMembers = useSelector(
+    (state) => state.projectWithMembers?.projectWithMembers
+  );
+  const userList = useSelector((state) => state.userList?.userList);
+  const isLoading = projectWithMembers === null;
+  const [selectedProject, setSelectedProject] = useState({});
   const [openDialog, setOpenDialog] = useState(false);
   const [openDialog2, setOpenDialog2] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [groupedProjects, setGroupedProjects] = useState([]);
 
   useEffect(() => {
-    getProjectsWithMembers();
-  }, []);
+    getProjectWithMembers(dispatch);
+  }, [dispatch]);
 
-  const getProjectsWithMembers = async () => {
-    try {
-      setIsLoading(true);
-      await dispatch(getProjectWithMembers(user));
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      console.error("Error fetching project data:", error);
-    }
+  useEffect(() => {
+    const grouped = projectWithMembers?.reduce((result, project) => {
+      const existingProject = result.find(
+        (p) => p.projectId === project.projectId
+      );
+      if (existingProject) {
+        existingProject.members.push({
+          username: project.username,
+          email: project.email,
+        });
+      } else {
+        result.push({
+          projectId: project.projectId,
+          projectName: project.projectName,
+          description: project.description,
+          startDate: project.startDate,
+          endDate: project.endDate,
+          urgency: project.urgency,
+          category: project.category,
+          status: project.status,
+          members: [
+            {
+              username: project.username,
+              email: project.email,
+            },
+          ],
+        });
+      }
+      return result;
+    }, []);
+    setGroupedProjects(grouped);
+  }, [projectWithMembers]);
+
+  const handleViewMembers = (projectId) => {
+    const selectedProject = groupedProjects.find(
+      (project) => project.projectId === projectId
+    );
+    setSelectedProject(selectedProject);
+    setOpenDialog(true);
   };
+
+  const handleEditProject = (projectId) => {
+    // Find the selected project
+    const selectedProject = groupedProjects.find(
+      (project) => project.projectId === projectId
+    );
+  
+    // Check if selectedProject is defined before further processing
+    if (!selectedProject) {
+      // Handle the error condition
+      console.error("Selected project not found.");
+      return;
+    }
+  
+    // Check if selectedProject.members is defined before accessing its properties
+    const selectedMembers = selectedProject.members?.map((member) => {
+      if (!member) {
+        return null; // Or handle the error condition appropriately
+      }
+      const user = userList.find((user) => user.user_id === member.user_id);
+      return user;
+    });
+  
+    setSelectedProject({
+      ...selectedProject,
+      members: selectedMembers || [], // Ensure selectedMembers is not null
+    });
+  
+    setOpenDialog2(true);
+  };
+  
+  
+
+  const handleCloseDialog = () => {
+    setSelectedProject({});
+    setOpenDialog(false);
+  };
+
+  const handleCloseDialog2 = () => {
+    setSelectedProject({});
+    setOpenDialog2(false);
+  };
+
+  const schema = yup.object().shape({
+    projectName: yup.string().required("Project name is required"),
+    description: yup.string().required("Description is required"),
+    startDate: yup.string().required("Start date is required"),
+    endDate: yup.string().required("End date is required"),
+    urgency: yup.string().required("Urgency is required"),
+    category: yup.string().required("Category is required"),
+  });
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-US");
   };
 
-  const groupedProjects = projectWithMembers.reduce((result, project) => {
-    const existingProject = result.find((p) => p.projectId === project.projectId);
-    if (existingProject) {
-      existingProject.members.push({
-        username: project.username,
-        email: project.email
-      });
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
+  const onSubmit = (data) => {
+    handleUpdateProject(data);
+    handleCloseDialog2();
+    reset();
+  };
+
+  const statusOptions = [
+    { label: "Pending Start" },
+    { label: "In Progress" },
+    { label: "Completed" },
+  ];
+
+  const urgencyOptions = [
+    { label: "Low" },
+    { label: "Medium" },
+    { label: "High" },
+  ];
+
+  const categoryOptions = [
+    { label: "Technology" },
+    { label: "Finance" },
+    { label: "Sales" },
+    { label: "Marketing" },
+    { label: "Construction" },
+    { label: "Event Management" },
+    { label: "Human Resources" },
+    { label: "Research and Development" },
+  ];
+
+  const handleMemberSelection = (event, value) => {
+    console.log("Selected members:", value);
+
+    // Check if value is null or empty (no members selected)
+    if (!value || value?.length === 0) {
+      // If no members selected, use the existing assignedMembers (if available) or an empty array
+      const existingAssignedMembers = selectedProject?.assignedMembers || [];
+      setSelectedProject((prevState) => ({
+        ...prevState,
+        members: value,
+        assignedMembers: existingAssignedMembers,
+      }));
     } else {
-      result.push({
-        projectId: project.projectId,
-        projectName: project.projectName,
-        description: project.description,
-        startDate: project.startDate,
-        endDate: project.endDate,
-        urgency: project.urgency,
-        category: project.category,
-        status: project.status,
-        members: [
-          {
-            username: project.username,
-            email: project.email
-          }
-        ]
+      // If members selected, extract user_id from the selected members
+      const selectedMembers = value?.map((member) => member.user_id);
+      setSelectedProject((prevState) => ({
+        ...prevState,
+        members: value,
+        assignedMembers: selectedMembers,
+      }));
+    }
+  };
+
+  const handleUpdateProject = async (data) => {
+    try {
+      // Check if selectedProject is defined and has necessary properties
+      if (!selectedProject || !selectedProject.projectId) {
+        // Handle the error condition
+        toast.error("Error updating project: Invalid project data!", {
+          position: toast.POSITION.TOP_RIGHT,
+        });
+        return;
+      }
+  
+      const {
+        projectId,
+        projectName,
+        description,
+        startDate,
+        endDate,
+        urgency,
+        category,
+        status,
+        assignedMembers,
+      } = selectedProject;
+  
+      const updatedProjectData = {
+        projectName,
+        description,
+        startDate,
+        endDate,
+        urgency,
+        category,
+        status,
+        assignedMembers,
+      };
+  
+      const updatedProject = await updateProject(
+        projectId,
+        updatedProjectData,
+        dispatch
+      );
+  
+      setGroupedProjects((prevProjects) =>
+        prevProjects.map((project) =>
+          project.projectId === updatedProject.projectId ? updatedProject : project
+        )
+      );
+  
+      toast.success("Project updated successfully!", {
+        position: toast.POSITION.TOP_RIGHT,
+      });
+    } catch (error) {
+      toast.error("Error updating project!", {
+        position: toast.POSITION.TOP_RIGHT,
       });
     }
-    return result;
-  }, []);
+  };
+  
 
-  const handleViewMembers = (projectId) => {
-    const selectedProject = groupedProjects.find((project) => project.projectId === projectId);
-    setSelectedProject(selectedProject);
-    setOpenDialog(true);
+  const handleDeleteProject = async (projectId) => {
+    try {
+      await deleteProject(dispatch, projectId);
+
+      setGroupedProjects((prevProjects) =>
+        prevProjects.filter((project) => project.projectId !== projectId)
+      );
+
+      toast.success("Project deleted successfully!", {
+        position: toast.POSITION.TOP_RIGHT,
+      });
+    } catch (error) {
+      console.log(error);
+      toast.error("Error deleting project!", {
+        position: toast.POSITION.TOP_RIGHT,
+      });
+    }
   };
 
-  const handleCloseDialog = () => {
-    setSelectedProject(null);
-    setOpenDialog(false);
-  };
-  const handleCloseDialog2 = () => {
-    setSelectedProject(null);
-    setOpenDialog2(false);
-  };
-
-const handleSave = () => {
-
-}
- 
-  const handleEditProject = (projectId) => {
-    const selectedProject = groupedProjects.find((project) => project.projectId === projectId);
-    setSelectedProject(selectedProject);
-    setOpenDialog2(true);
-  };
-
-  const handleDeleteProject = (projectId) => {
-    // Implement the logic to handle deleting a project
-    console.log("Delete project with ID:", projectId);
-  };
-
-  return (<div style={{margin:'10px'}}>
-    <Grid container spacing={2}>
-      {isLoading ? (
-        <Grid item xs={12} align="center">
-          <CircularProgress />
+  return (
+    <>
+      <div style={{ margin: "10px" }}>
+        <Grid container spacing={2}>
+          {isLoading ? (
+            <Grid item xs={12} align="center">
+              <CircularProgress />
+            </Grid>
+          ) : (
+            groupedProjects?.map((project) => (
+              <Grid item xs={12} key={project.projectId}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h5" component="h2">
+                      {project.projectName}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      {project.description}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      Start Date: {formatDate(project.startDate)}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      End Date: {formatDate(project.endDate)}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      Urgency: {project.urgency}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      Category: {project.category}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      Status: {project.status}
+                    </Typography>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleViewMembers(project.projectId)}
+                        style={{ marginTop: "10px" }}
+                        disableElevation
+                      >
+                        View Members
+                      </Button>
+                      <IconButton
+                        style={{ padding: "2px" }}
+                        color="primary"
+                        onClick={() => handleEditProject(project.projectId)}
+                        aria-label="edit"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        style={{ padding: "2px" }}
+                        color="secondary"
+                        onClick={() => handleDeleteProject(project.projectId)}
+                        aria-label="delete"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          )}
         </Grid>
-      ) : (
-        groupedProjects.map((project) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={project.projectId}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5" component="h2">
-                  {project.projectName}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" component="div">
-                  {project.description}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" component="div">
-                  Start Date: {formatDate(project.startDate)}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" component="div">
-                  End Date: {formatDate(project.endDate)}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" component="div">
-                  Urgency: {project.urgency}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" component="div">
-                  Category: {project.category}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" component="div">
-                  Status: {project.status}
-                </Typography>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => handleViewMembers(project.projectId)}
-                    style={{ marginTop: "10px" }}
-                    disableElevation // Disable button elevation to prevent focus outline
-                  >
-                    View Members
-                  </Button>
-                  <IconButton
-                    style={{ padding: "2px" }}
-                    color="primary"
-                    onClick={() => handleEditProject(project.projectId)}
-                    aria-label="edit"
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    style={{ padding: "2px" }}
-                    color="secondary"
-                    onClick={() => handleDeleteProject(project.projectId)}
-                    aria-label="delete"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </div>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))
-      )}
-      {selectedProject && (
-        <Dialog open={openDialog} onClose={handleCloseDialog}>
-          <DialogTitle style={{ marginTop: "-10px" }}>{selectedProject.projectName}</DialogTitle>
-          <DialogTitle style={{ marginTop: "-35px", fontSize: "15px" }}>Assigned Members</DialogTitle>
-          <hr style={{ width: "90%", marginTop: "-13px", marginBottom: "-16px" }} />
-          <DialogContent>
-            <DialogContentText>
-              {selectedProject.members.map((member) => (
-                <Typography key={member.email}>
-                  Username: {member.username}
-                  <br />
-                  Email: {member.email}
-                  <hr />
-                </Typography>
-              ))}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <IconButton edge="end" color="inherit" onClick={handleCloseDialog} aria-label="close">
-              <CloseIcon />
-            </IconButton>
-          </DialogActions>
-        </Dialog>
-      )}
-      {selectedProject && (
-        <EditProjectDialog
-          open={openDialog2}
-          handleClose={handleCloseDialog2}
-          handleSave={handleSave} // Implement the handleSave function
-          editProjectData={selectedProject}
-          assignedMembersData={selectedProject.members}
-          categoryData={selectedProject.category}
-          urgencyData={selectedProject.urgency}
-          statusData={selectedProject.status}
-          userList={userList} // Provide the necessary userList data
+
+        {selectedProject && (
+          <Dialog open={openDialog} onClose={handleCloseDialog}>
+            <DialogTitle style={{ marginTop: "-10px" }}>
+              {selectedProject.projectName}
+            </DialogTitle>
+            <DialogTitle style={{ marginTop: "-35px", fontSize: "15px" }}>
+              Assigned Members
+            </DialogTitle>
+            <hr
+              style={{
+                width: "90%",
+                marginTop: "-13px",
+                marginBottom: "-16px",
+              }}
+            />
+            <DialogContent>
+              <DialogContentText>
+                {selectedProject.members?.map((member) => (
+                  <Typography key={member.email}>
+                    Username: {member.username}
+                    <br />
+                    Email: {member.email}
+                    <hr />
+                  </Typography>
+                ))}
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <IconButton
+                edge="end"
+                color="inherit"
+                onClick={handleCloseDialog}
+                aria-label="close"
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogActions>
+          </Dialog>
+        )}
+
+        {selectedProject && (
+          <Dialog open={openDialog2} onClose={handleCloseDialog2}>
+            <DialogTitle>Edit Project</DialogTitle>
+            <DialogContent>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Controller
+                  name="projectName"
+                  control={control}
+                  defaultValue={selectedProject.projectName}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Project Name"
+                      fullWidth
+                      margin="normal"
+                      error={!!errors.projectName}
+                      helperText={errors.projectName?.message}
+                    />
+                  )}
+                />
+<Controller
+  name="startDate"
+  control={control}
+  defaultValue={formatDate(selectedProject.startDate)}
+  render={({ field }) => (
+    <TextField
+      {...field}
+      label="Start Date"
+      fullWidth
+      margin="normal"
+      error={!!errors.startDate}
+      helperText={errors.startDate?.message}
+    />
+  )}
+/>
+
+<Controller
+  name="endDate"
+  control={control}
+  defaultValue={formatDate(selectedProject.endDate)}
+  render={({ field }) => (
+    <TextField
+      {...field}
+      label="End Date"
+      fullWidth
+      margin="normal"
+      error={!!errors.endDate}
+      helperText={errors.endDate?.message}
+    />
+  )}
+/>
+
+<Controller
+  name="status"
+  control={control}
+  defaultValue={selectedProject.status}
+  render={({ field }) => (
+    <Autocomplete
+      {...field}
+      value={statusOptions.find((option) => option.label === field.value)}
+      onChange={(event, newValue) => field.onChange(newValue?.label)}
+      options={statusOptions}
+      getOptionLabel={(option) => option.label}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Status"
+          fullWidth
+          error={!!errors.status}
+          helperText={errors.status?.message}
         />
       )}
-    </Grid>
-    </div>
+    />
+  )}
+/>
+
+<Controller
+  name="urgency"
+  control={control}
+  defaultValue={selectedProject.urgency}
+  render={({ field }) => (
+    <Autocomplete
+      {...field}
+      value={urgencyOptions.find((option) => option.label === field.value)}
+      onChange={(event, newValue) => field.onChange(newValue?.label)}
+      options={urgencyOptions}
+      getOptionLabel={(option) => option.label}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Urgency"
+          fullWidth
+          error={!!errors.urgency}
+          helperText={errors.urgency?.message}
+        />
+      )}
+    />
+  )}
+/>
+
+<Controller
+  name="category"
+  control={control}
+  defaultValue={selectedProject.category}
+  render={({ field }) => (
+    <Autocomplete
+      {...field}
+      value={categoryOptions.find((option) => option.label === field.value)}
+      onChange={(event, newValue) => field.onChange(newValue?.label)}
+      options={categoryOptions}
+      getOptionLabel={(option) => option.label}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Category"
+          fullWidth
+          error={!!errors.category}
+          helperText={errors.category?.message}
+        />
+      )}
+    />
+  )}
+/>
+
+{selectedProject.members ? (
+          <Autocomplete
+            multiple
+            options={userList}
+            value={selectedProject.members}
+            onChange={handleMemberSelection}
+            getOptionLabel={(option) => option.username}
+            isOptionEqualToValue={(option, value) => option.username === value.username}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip variant="outlined" label={option.username} {...getTagProps({ index })} />
+              ))
+            }
+            renderInput={(params) => <TextField {...params} label="Assign to Members" />}
+          />
+        ) : (
+          <div>Loading members...</div> // Add a loading indicator or any other UI when members are not available
+        )}
+
+                <DialogActions>
+                  <Button onClick={handleCloseDialog2}>Cancel</Button>
+                  <Button type="submit" color="primary">
+                    Save
+                  </Button>
+                </DialogActions>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+      <ToastContainer />
+    </>
   );
-}
+};
 
 export default ExistingProjects;
