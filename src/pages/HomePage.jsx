@@ -20,7 +20,7 @@ import Notifications from './Notifications';
 import Account from './Account';
 import Privacy from './Privacy';
 import FAQ from './FAQ';
-import Test from '../components/test';
+import Test from '../components/Test';
 import './homepage.css';
 import { useNavigate } from "react-router-dom";
 import { logOutuser } from "../redux/apiCall";
