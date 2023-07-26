@@ -282,15 +282,15 @@ const ExistingProjects = () => {
   return (
     <>
       <div style={{ margin: "10px" }}>
-        <Grid container spacing={2}>
+        <Grid container >
           {isLoading ? (
-            <Grid item xs={12} sm={6} md={4} lg={3} align="center">
+            <Grid item xs={12} align="center">
               <CircularProgress />
             </Grid>
           ) : (
             groupedProjects?.map((project) => (
-              <Grid item xs={12} key={project.projectId}>
-                <Card>
+              <Grid item xs={12} sm={6} md={4} lg={3} key={project.projectId}>
+                <Card style={{ margin: '8px' }}>
                   <CardContent>
                     <Typography variant="h5" component="h2">
                       {project.projectName}

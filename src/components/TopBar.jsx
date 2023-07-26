@@ -41,15 +41,7 @@ const ClearButton = styled(IconButton)({
   marginLeft: 8,
 });
 
-const userProfile = {
-  firstName: "John",
-  lastName: "Chege",
-  email: "johnchege@thejitu.com",
-  avatarUrl: "https://i.pravatar.cc/150?img=3",
-  bio: "Software Developer",
-  location: "Kutus Kerugoya, Kenya",
-  website: "https://www.prince.com",
-};
+
 
 const TopBar = () => {
   const dispatch = useDispatch();
@@ -60,6 +52,15 @@ const TopBar = () => {
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
   const [showTable, setShowTable] = useState(false); // State to hide/show the table
+
+  const userProfile = {
+    username:user.username,
+     email: user.email,
+     avatarUrl: "https://i.pravatar.cc/150?img=3",
+     bio: "Software Developer",
+     location: "Kutus Kerugoya, Kenya",
+     website: "https://www.prince.com",
+   };
 
   const handleSearch = () => {
     setLoading(true);
@@ -120,7 +121,7 @@ const TopBar = () => {
             <Tooltip
               title={
                 <div style={{ padding: "8px" }}>
-                  <Typography>{userProfile.firstName} {userProfile.lastName}</Typography>
+                  <Typography>{userProfile.username}</Typography>
                   <Typography variant="body2" style={{ fontSize: "14px" }}>
                     {userProfile.bio}
                   </Typography>
@@ -148,7 +149,7 @@ const TopBar = () => {
             </Tooltip>
             <div>
               <Typography variant="h6" style={{ marginLeft: 10 }}>
-                {userProfile.firstName} {userProfile.lastName}
+                {userProfile.username} 
               </Typography>
               <Typography variant="body2" style={{ fontSize: "14px", marginLeft: '10px', marginTop: "-5px" }}>
                 {userProfile.bio}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import { styled } from "@mui/material/styles";
 import {
   AppBar,
@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
+import { useSelector } from "react-redux";
 
 const BackButton = styled(IconButton)({
   marginRight: 2,
@@ -49,16 +50,15 @@ const ProfileAvatar = styled(Avatar)({
 
 const Account = () => {
   const [openDialog, setOpenDialog] = useState(false);
-  
+  const user = useSelector((state) => state.user?.user)
 
   const userProfile = {
-    firstName: "John",
-    lastName: "Chege",
-    email: "johnchege@thejitu.com",
+    username:user.username,
+    email: user.email,
     avatarUrl: "https://i.pravatar.cc/150?img=3",
     bio: "Software Developer",
     location: "Kutus Kerugoya, Kenya",
-    website: "https://www.prince.com",
+    website: "https://www.myworld.com",
   };
 
   const [editedProfile, setEditedProfile] = useState({ ...userProfile });
@@ -100,7 +100,7 @@ const Account = () => {
                   <ProfileAvatar alt="User Avatar" src={editedProfile.avatarUrl} />
                 </Grid>
                 <Grid item>
-                  <Typography variant="h4">{editedProfile.firstName} {editedProfile.lastName}</Typography>
+                  <Typography variant="h4">{editedProfile.username} </Typography>
                   <Typography variant="subtitle1">{editedProfile.email}</Typography>
                   <Typography variant="body1">{editedProfile.bio}</Typography>
                   <Typography variant="body2">Location: {editedProfile.location}</Typography>
@@ -115,19 +115,13 @@ const Account = () => {
         <DialogTitle>Edit Profile</DialogTitle>
         <DialogContent>
           <TextField
-            label="First Name"
-            value={editedProfile.firstName}
+            label="Username"
+            value={editedProfile.username}
             onChange={(e) => setEditedProfile({ ...editedProfile, firstName: e.target.value })}
             fullWidth
             margin="normal"
           />
-          <TextField
-            label="Last Name"
-            value={editedProfile.lastName}
-            onChange={(e) => setEditedProfile({ ...editedProfile, lastName: e.target.value })}
-            fullWidth
-            margin="normal"
-          />
+        
           <TextField
             label="Email"
             value={editedProfile.email}
