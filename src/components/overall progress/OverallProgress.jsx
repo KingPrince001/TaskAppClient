@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 
 const OverallProgress = () => {
-  const projectWithMembers = useSelector((state) => state.projectWithMembers.projectWithMembers);
+  const projectWithMembers = useSelector((state) => state.projectWithMembers?.projectWithMembers);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const [statusCounts, setStatusCounts] = useState({
@@ -29,7 +29,7 @@ const OverallProgress = () => {
         'In Progress': 0,
         'Completed': 0,
       };
-      projectWithMembers.forEach((project) => {
+      projectWithMembers?.forEach((project) => {
         const status = project.status;
         if (status === 'Pending Start') {
           newStatusCounts['Pending Start']++;

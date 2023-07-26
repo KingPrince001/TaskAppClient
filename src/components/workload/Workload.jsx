@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 
 const Workload = () => {
-  const projectWithMembers = useSelector((state) => state.projectWithMembers.projectWithMembers);
+  const projectWithMembers = useSelector((state) => state.projectWithMembers?.projectWithMembers);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const [statusCounts, setStatusCounts] = useState({
@@ -22,7 +22,7 @@ const Workload = () => {
 
     // Count the number of projects for each status
     const newStatusCounts = { ...statusCounts };
-    projectWithMembers.forEach((project) => {
+    projectWithMembers?.forEach((project) => {
       const status = project.status;
       if (status === 'Pending Start') {
         newStatusCounts['Pending Start']++;
@@ -37,7 +37,7 @@ const Workload = () => {
 
     // Count the number of projects assigned to each person
     const newAssignedPersonCounts = {};
-    projectWithMembers.forEach((project) => {
+    projectWithMembers?.forEach((project) => {
       const assignedPersonName = project.username;
       if (assignedPersonName) {
         if (newAssignedPersonCounts[assignedPersonName]) {
