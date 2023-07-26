@@ -284,7 +284,7 @@ const ExistingProjects = () => {
       <div style={{ margin: "10px" }}>
         <Grid container spacing={2}>
           {isLoading ? (
-            <Grid item xs={12} align="center">
+            <Grid item xs={12} sm={6} md={4} lg={3} align="center">
               <CircularProgress />
             </Grid>
           ) : (
